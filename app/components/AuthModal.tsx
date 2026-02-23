@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "./AuthContext";
 
 export default function AuthModal({
@@ -11,6 +12,8 @@ export default function AuthModal({
   onClose: () => void;
 }) {
   const { signIn, signUp } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -47,14 +50,31 @@ export default function AuthModal({
     if (mode === "login") {
       const r = await signIn(email, password);
       setLoading(false);
-      if (!r.ok) return setMsg(r.error || "Login failed");
+
+      if (!r.ok) {
+        setMsg(r.error || "Login failed");
+        return;
+      }
+
       onClose();
+
+      // 🔥 Redirect logic added
+      const redirect = searchParams.get("redirect");
+      if (redirect) {
+        router.push(redirect);
+      }
+
       return;
     }
 
     const r = await signUp({ email, password, fullName });
     setLoading(false);
-    if (!r.ok) return setMsg(r.error || "Signup failed");
+
+    if (!r.ok) {
+      setMsg(r.error || "Signup failed");
+      return;
+    }
+
     setMsg("Account created. Please login.");
     setMode("login");
   };
@@ -121,7 +141,11 @@ export default function AuthModal({
             {loading ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
           </button>
 
-          {msg && <div className="mt-3 text-sm opacity-80 text-center">{msg}</div>}
+          {msg && (
+            <div className="mt-3 text-sm opacity-80 text-center">
+              {msg}
+            </div>
+          )}
 
           <div className="mt-4 text-sm text-center opacity-80">
             {mode === "login" ? (
