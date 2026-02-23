@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, ShoppingCart } from "lucide-react";
+import { MessageCircle, ShoppingCart, Gift } from "lucide-react";
 import { useCart } from "./CartContext";
 import { useAuth } from "./AuthContext";
 import AuthModal from "./AuthModal";
@@ -17,6 +17,7 @@ export default function Navbar() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const router = useRouter();
+  const pathname = usePathname();
 
   const goToSection = (id: string) => {
     router.push(`/#${id}`);
@@ -54,35 +55,58 @@ export default function Navbar() {
     <>
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-cream/90 border-b border-gold">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-          {/* Logo -> Home (works on all pages) */}
+          
+          {/* Logo */}
           <Link
-  href="/"
-  className="brand-logo text-4xl text-brown font-black tracking-wider"
-  aria-label="Go to home"
->
-         Konaseema Specials   
+            href="/"
+            className="brand-logo text-4xl text-brown font-black tracking-wider"
+            aria-label="Go to home"
+          >
+            Konaseema Specials
           </Link>
 
-          <div className="hidden md:flex gap-8 font-semibold">
+          {/* Desktop Menu */}
+          <div className="hidden md:flex gap-8 font-semibold items-center">
+
             <button className="hover:text-gold" onClick={() => goToSection("home")} type="button">
               Home
             </button>
+
             <button className="hover:text-gold" onClick={() => goToSection("categories")} type="button">
               Categories
             </button>
+
             <button className="hover:text-gold" onClick={() => goToSection("products")} type="button">
               Products
             </button>
+
             <button className="hover:text-gold" onClick={() => goToSection("about")} type="button">
               About
             </button>
+
             <button className="hover:text-gold" onClick={() => goToSection("contact")} type="button">
               Contact
             </button>
+
+            {/* 🔥 Highlighted Custom Order */}
+            <Link
+              href="/custom-order"
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all duration-300
+                ${
+                  pathname === "/custom-order"
+                    ? "bg-gold text-brown shadow-md"
+                    : "bg-brown text-white hover:bg-gold hover:text-brown"
+                }`}
+            >
+              <Gift size={18} />
+              Custom Order
+            </Link>
+
           </div>
 
+          {/* Right Side */}
           <div className="flex items-center gap-4">
-            {/* ✅ Login or Profile-letter */}
+
             {!user ? (
               <button
                 type="button"
@@ -93,7 +117,6 @@ export default function Navbar() {
               </button>
             ) : (
               <div className="relative" ref={menuRef}>
-                {/* Profile circle (first letter) */}
                 <button
                   type="button"
                   onClick={() => setMenuOpen((v) => !v)}
@@ -104,7 +127,6 @@ export default function Navbar() {
                   {initial}
                 </button>
 
-                {/* Dropdown */}
                 {menuOpen && (
                   <div className="absolute right-0 mt-3 w-44 premium-card p-2">
                     <button
@@ -132,7 +154,7 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* WhatsApp (keep as-is / contact only) */}
+            {/* WhatsApp */}
             <a
               aria-label="WhatsApp"
               className="icon-circle whatsapp-circle"
