@@ -7,6 +7,8 @@ import { MessageCircle, ShoppingCart, Gift } from "lucide-react";
 import { useCart } from "./CartContext";
 import { useAuth } from "./AuthContext";
 import AuthModal from "./AuthModal";
+import { useSearchParams } from "next/navigation";
+
 
 export default function Navbar() {
   const cart = useCart();
@@ -18,6 +20,8 @@ export default function Navbar() {
 
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
 
   const goToSection = (id: string) => {
     router.push(`/#${id}`);
@@ -32,6 +36,12 @@ export default function Navbar() {
   // Close profile menu on outside click / ESC
   useEffect(() => {
     if (!menuOpen) return;
+    useEffect(() => {
+  if (searchParams.get("login") === "1") {
+    setAuthOpen(true);
+  }
+}, [searchParams]);
+
 
     const onDown = (e: MouseEvent) => {
       const el = menuRef.current;
