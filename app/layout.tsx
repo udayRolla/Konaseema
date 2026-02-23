@@ -1,6 +1,8 @@
 import "./globals.css";
 import { Inter, Playfair_Display, Great_Vibes } from "next/font/google";
 import Providers from "./providers";
+import FloatingCustomButton from "./components/FloatingCustomButton";
+
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
@@ -46,6 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 </div>
 
         <Providers>{children}</Providers>
+        <FloatingCustomButton />
+
       </body>
     </html>
   );
