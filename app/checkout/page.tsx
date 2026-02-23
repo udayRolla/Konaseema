@@ -314,7 +314,8 @@ Notes: ${shipping.deliveryNotes || "None"}
                 className="btn-primary flex-1"
                 onClick={() => {
                   setShowLoginModal(false);
-                  router.push("/login?redirect=/checkout");
+                  router.push("/?login=1&redirect=/checkout");
+
                 }}
               >
                 Login
