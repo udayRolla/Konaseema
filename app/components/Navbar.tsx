@@ -111,7 +111,8 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setAuthOpen(true)}
-                className="px-5 py-2 rounded-full border-2 border-blue-600 text-blue-700 font-semibold"
+                className="px-5 py-2 rounded-full border-2 border-green-800 text-green-800 font-semibold hover:bg-green-800 hover:text-white transition duration-300"
+
               >
                 Login
               </button>
