@@ -41,11 +41,12 @@ export default function HomeClient() {
         <Products activeCategory={active} searchQuery={searchQuery} />
 
         {/* ✅ IMAGE DISCLAIMER (add here) */}
-        <div className="max-w-6xl mx-auto px-6 mt-4">
-          <p className="text-sm text-[#6b5a4a] opacity-80">
-            Images are for reference only. Actual product appearance may vary.
-          </p>
-        </div>
+        <div className="max-w-6xl mx-auto px-6 mt-6 text-center">
+  <p className="text-sm md:text-base text-[#5a4634] italic tracking-wide">
+    Images are for reference only. Actual product appearance may vary.
+  </p>
+</div>
+
 
         {/* ===== ABOUT + SHIPPING CARDS ===== */}
         <section
