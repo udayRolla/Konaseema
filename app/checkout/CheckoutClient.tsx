@@ -24,24 +24,9 @@ type Shipping = {
 
 const STORAGE_KEY = "konaseema_shipping_v1";
 
-/* ---------- TABLE FOR WHATSAPP ---------- */
-function makeTable(headers: string[], rows: string[][]) {
-  const widths = headers.map((h, i) =>
-    Math.max(h.length, ...rows.map((r) => (r[i] ? r[i].length : 0)))
-  );
-
-  const line = (cols: string[]) =>
-    cols.map((c, i) => c + " ".repeat(widths[i] - c.length)).join("  ");
-
-  const sep = widths.map((w) => "-".repeat(w)).join("  ");
-  return [line(headers), sep, ...rows.map(line)].join("\n");
-}
-
 export default function CheckoutClient() {
   const cart = useCart() || { items: [], clear: () => {}, close: () => {} };
   const router = useRouter();
-
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const [shipping, setShipping] = useState<Shipping>({
     fullName: "",
@@ -56,54 +41,25 @@ export default function CheckoutClient() {
     deliveryNotes: "",
   });
 
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
-  const [couponMsg, setCouponMsg] = useState<string | null>(null);
 
-  /* ================= SAFE LOCAL STORAGE ================= */
+  /* ================= LOCAL STORAGE ================= */
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setShipping((p) => ({ ...p, ...JSON.parse(raw) }));
-    } catch {}
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) setShipping((p) => ({ ...p, ...JSON.parse(raw) }));
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(shipping));
-    } catch {}
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(shipping));
   }, [shipping]);
-
-  /* ================= VALIDATION ================= */
-
-  const errors = useMemo(() => {
-    const e: Record<string, string> = {};
-    if (!shipping.fullName.trim()) e.fullName = "Full name is required";
-    if (!shipping.email.trim()) e.email = "Email is required";
-    if (!shipping.phone.trim()) e.phone = "Phone is required";
-    if (!shipping.country.trim()) e.country = "Country is required";
-    if (!shipping.address1.trim()) e.address1 = "Address is required";
-    if (!shipping.city.trim()) e.city = "City is required";
-    if (!shipping.state.trim()) e.state = "State is required";
-    if (!shipping.zip.trim()) e.zip = "ZIP is required";
-    return e;
-  }, [shipping]);
-
-  const isValid = Object.keys(errors).length === 0;
 
   /* ================= HELPERS ================= */
-
-  const formatPrice = (v: number) => `$${v.toFixed(2)}`;
 
   const getWeightInKg = (w: string) => {
     if (!w) return 0;
@@ -122,38 +78,35 @@ export default function CheckoutClient() {
     return 60;
   };
 
-  const subtotal = (cart.items || []).reduce(
-    (s: number, it: any) => s + Number(it.price) * Number(it.qty),
-    0
-  );
+  const subtotal = useMemo(() => {
+    return (cart.items || []).reduce(
+      (s: number, it: any) => s + Number(it.price) * Number(it.qty),
+      0
+    );
+  }, [cart.items]);
 
-  const totalWeight = (cart.items || []).reduce((sum: number, i: any) => {
-    const kg = getWeightInKg(i.weight);
-    return sum + kg * i.qty;
-  }, 0);
+  const totalWeight = useMemo(() => {
+    return (cart.items || []).reduce((sum: number, i: any) => {
+      const kg = getWeightInKg(i.weight);
+      return sum + kg * i.qty;
+    }, 0);
+  }, [cart.items]);
 
   const shippingFee = cart.items?.length ? getShipping(totalWeight) : 0;
-
   const total = Math.max(0, subtotal - discount + shippingFee);
 
   /* ================= PLACE ORDER ================= */
 
   const onPlaceOrder = async () => {
-    if (!isValid) {
-      setSaveError("Please fill all required fields.");
-      return;
-    }
-
-    const { data: authRes } = await supabase.auth.getUser();
-
-    if (!authRes?.user?.id) {
-      setShowLoginModal(true);
-      return;
-    }
-
     try {
       setSaving(true);
       setSaveError(null);
+
+      const { data: authRes } = await supabase.auth.getUser();
+      if (!authRes?.user?.id) {
+        router.push("/?login=1&redirect=/checkout");
+        return;
+      }
 
       const userId = authRes.user.id;
 
@@ -203,17 +156,14 @@ export default function CheckoutClient() {
         }))
       );
 
-      const message = `🛒 *New Order #${order.id}*\n\nTotal: ${formatPrice(total)}`;
-
       cart.clear?.();
       setSuccessMsg(`Order placed successfully. Order ID: ${order.id}`);
 
-      if (typeof window !== "undefined") {
-        const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-          message
-        )}`;
-        window.location.href = url;
-      }
+      const message = `🛒 *New Order #${order.id}*\nTotal: $${total.toFixed(2)}`;
+
+      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+        message
+      )}`;
     } catch (e: any) {
       setSaveError(e.message || "Failed to place order");
     } finally {
@@ -225,46 +175,82 @@ export default function CheckoutClient() {
     <>
       <Navbar />
 
-      {showLoginModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-3xl bg-[#fffaf2] border border-gold p-6 shadow-xl">
-            <h3 className="text-xl font-extrabold text-brown">Please login</h3>
-            <div className="mt-6 flex gap-3">
+      <main className="min-h-screen bg-cream pt-28 pb-16">
+        <div className="max-w-6xl mx-auto px-5">
+          <h1 className="text-4xl font-extrabold text-brown mb-8">
+            Checkout
+          </h1>
+
+          <div className="grid md:grid-cols-2 gap-10">
+            {/* LEFT: SHIPPING FORM */}
+            <div className="premium-card p-6 space-y-4">
+              <h2 className="text-2xl font-bold text-brown">
+                Shipping Details
+              </h2>
+
+              {Object.keys(shipping).map((key) => (
+                <input
+                  key={key}
+                  value={(shipping as any)[key]}
+                  onChange={(e) =>
+                    setShipping((p) => ({
+                      ...p,
+                      [key]: e.target.value,
+                    }))
+                  }
+                  placeholder={key}
+                  className="w-full border border-gold rounded-xl px-4 py-2"
+                />
+              ))}
+            </div>
+
+            {/* RIGHT: ORDER SUMMARY */}
+            <div className="premium-card p-6 space-y-4">
+              <h2 className="text-2xl font-bold text-brown">
+                Order Summary
+              </h2>
+
+              {cart.items.map((item: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex justify-between items-center"
+                >
+                  <div>
+                    {item.name} ({item.weight}) × {item.qty}
+                  </div>
+                  <div>
+                    $
+                    {(Number(item.price) * Number(item.qty)).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span>${shippingFee.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+              </div>
+
               <button
-                className="btn-primary flex-1"
-                onClick={() => {
-                  setShowLoginModal(false);
-                  router.push("/?login=1&redirect=/checkout");
-                }}
+                onClick={onPlaceOrder}
+                disabled={saving}
+                className="w-full py-3 rounded-xl bg-green-800 text-white font-bold hover:bg-green-900"
               >
-                Login
-              </button>
-              <button
-                className="flex-1 rounded-2xl border border-gold px-4 py-3 font-semibold"
-                onClick={() => setShowLoginModal(false)}
-              >
-                Cancel
+                {saving ? "Placing Order..." : "Place Order"}
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      <main className="min-h-screen bg-cream pt-28 pb-16">
-        <div className="max-w-6xl mx-auto px-5">
-          <h1 className="text-4xl font-extrabold text-brown mb-8">Checkout</h1>
-
-          {/* Optional messages (kept safe) */}
-          {saveError && (
-            <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-700">
-              {saveError}
-            </div>
-          )}
-          {successMsg && (
-            <div className="mb-4 rounded-xl border border-green-300 bg-green-50 px-4 py-3 text-green-700">
-              {successMsg}
-            </div>
-          )}
         </div>
       </main>
 
