@@ -38,10 +38,14 @@ export default function HomeClient() {
           setSearchQuery={setSearchQuery}
         />
 
-        <Products
-          activeCategory={active}
-          searchQuery={searchQuery}
-        />
+        <Products activeCategory={active} searchQuery={searchQuery} />
+
+        {/* ✅ IMAGE DISCLAIMER (add here) */}
+        <div className="max-w-6xl mx-auto px-6 mt-4">
+          <p className="text-sm text-[#6b5a4a] opacity-80">
+            Images are for reference only. Actual product appearance may vary.
+          </p>
+        </div>
 
         {/* ===== ABOUT + SHIPPING CARDS ===== */}
         <section
@@ -76,9 +80,9 @@ export default function HomeClient() {
               </h2>
 
               <p className="opacity-80 mb-6 text-[#4a3b2f]">
-                Orders are confirmed via WhatsApp. We pack sweets carefully
-                for safe delivery. For best taste, store in a cool dry place
-                and consume within the mentioned shelf life.
+                Orders are confirmed via WhatsApp. We pack sweets carefully for
+                safe delivery. For best taste, store in a cool dry place and
+                consume within the mentioned shelf life.
               </p>
 
               <div className="border border-[#d6c2a3] rounded-xl p-4 bg-[#faf6ef]">
@@ -105,16 +109,14 @@ export default function HomeClient() {
                 Konaseema Foods
               </h3>
               <p className="text-[#6b5a4a]">
-                Authentic traditional sweets & snacks.
-                Freshly prepared and packed with care.
+                Authentic traditional sweets & snacks. Freshly prepared and
+                packed with care.
               </p>
             </div>
 
             {/* Contact */}
             <div>
-              <h4 className="font-semibold mb-3 text-[#3b2417]">
-                Contact
-              </h4>
+              <h4 className="font-semibold mb-3 text-[#3b2417]">Contact</h4>
               <div className="space-y-2 text-[#6b5a4a]">
                 <p>Email: konaseemafoods@example.com</p>
                 <p>WhatsApp: +91 63054 19750</p>
@@ -124,9 +126,7 @@ export default function HomeClient() {
 
             {/* Policies */}
             <div>
-              <h4 className="font-semibold mb-3 text-[#3b2417]">
-                Policies
-              </h4>
+              <h4 className="font-semibold mb-3 text-[#3b2417]">Policies</h4>
               <div className="space-y-2 text-[#6b5a4a]">
                 <p>Return & Refund Policy</p>
                 <p>Delivery Policy</p>
@@ -137,9 +137,7 @@ export default function HomeClient() {
 
             {/* Quick Order */}
             <div>
-              <h4 className="font-semibold mb-3 text-[#3b2417]">
-                Quick Order
-              </h4>
+              <h4 className="font-semibold mb-3 text-[#3b2417]">Quick Order</h4>
               <p className="text-[#6b5a4a] mb-4">
                 Order instantly via WhatsApp.
               </p>
@@ -147,6 +145,7 @@ export default function HomeClient() {
               <a
                 href="https://wa.me/916305419750"
                 target="_blank"
+                rel="noreferrer"
                 className="inline-block px-6 py-3 rounded-xl bg-[#2f4a3a] text-white font-semibold shadow-sm transition hover:brightness-110"
               >
                 WhatsApp Now
@@ -156,14 +155,13 @@ export default function HomeClient() {
 
           {/* Bottom strip */}
           <div className="max-w-6xl mx-auto mt-10 pt-6 border-t border-[#e2d2b6] flex flex-col md:flex-row justify-between items-center text-sm text-[#6b5a4a]">
-            <p>© {new Date().getFullYear()} Konaseema Foods. All rights reserved.</p>
-            <p className="mt-2 md:mt-0">
-              Made with love in Konaseema
+            <p>
+              © {new Date().getFullYear()} Konaseema Foods. All rights reserved.
             </p>
+            <p className="mt-2 md:mt-0">Made with love in Konaseema</p>
           </div>
         </footer>
       </main>
     </>
   );
 }
-
