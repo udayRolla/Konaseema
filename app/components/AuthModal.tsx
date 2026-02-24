@@ -44,39 +44,56 @@ export default function AuthModal({
   if (!open) return null;
 
   const submit = async () => {
+    if (loading) return; // ✅ prevent double submit
+
     setMsg(null);
     setLoading(true);
 
-    if (mode === "login") {
-      const r = await signIn(email, password);
-      setLoading(false);
+    try {
+      const cleanEmail = email.trim();
+      const cleanPassword = password; // don’t trim passwords
+      const cleanFullName = fullName.trim();
 
-      if (!r.ok) {
-        setMsg(r.error || "Login failed");
+      if (!cleanEmail || !cleanPassword) {
+        setMsg("Email and password are required");
         return;
       }
 
-      onClose();
+      if (mode === "login") {
+        const r = await signIn(cleanEmail, cleanPassword);
 
-      // 🔥 Redirect logic added
-      const redirect = searchParams.get("redirect");
-      if (redirect) {
-        router.push(redirect);
+        if (!r.ok) {
+          setMsg(r.error || "Login failed");
+          return;
+        }
+
+        onClose();
+
+        // 🔥 Redirect logic (keep same)
+        const redirect = searchParams.get("redirect");
+        if (redirect) router.push(redirect);
+
+        return;
       }
 
-      return;
+      // signup mode
+      if (!cleanFullName) {
+        setMsg("Full name is required");
+        return;
+      }
+
+      const r = await signUp({ email: cleanEmail, password: cleanPassword, fullName: cleanFullName });
+
+      if (!r.ok) {
+        setMsg(r.error || "Signup failed");
+        return;
+      }
+
+      setMsg("Account created. Please login.");
+      setMode("login");
+    } finally {
+      setLoading(false); // ✅ always reset so “Please wait…” never sticks
     }
-
-    const r = await signUp({ email, password, fullName });
-    setLoading(false);
-
-    if (!r.ok) {
-      setMsg(r.error || "Signup failed");
-      return;
-    }
-
-    setMsg("Account created. Please login.");
-    setMode("login");
   };
 
   return (
@@ -136,7 +153,7 @@ export default function AuthModal({
             type="button"
             disabled={loading}
             onClick={submit}
-            className="w-full py-3 rounded-xl border border-[#d9c4a7] bg-[#fffaf2] hover:bg-[#f6efe6] transition font-semibold"
+            className="w-full py-3 rounded-xl border border-[#d9c4a7] bg-[#fffaf2] hover:bg-[#f6efe6] transition font-semibold disabled:opacity-60"
           >
             {loading ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
           </button>
@@ -155,6 +172,7 @@ export default function AuthModal({
                   type="button"
                   className="underline font-semibold"
                   onClick={() => setMode("signup")}
+                  disabled={loading}
                 >
                   Sign up
                 </button>
@@ -166,6 +184,7 @@ export default function AuthModal({
                   type="button"
                   className="underline font-semibold"
                   onClick={() => setMode("login")}
+                  disabled={loading}
                 >
                   Login
                 </button>
