@@ -74,6 +74,7 @@ export default function CheckoutClient() {
     setMounted(true);
   }, []);
 
+  /* ================= SAFE LOCAL STORAGE ================= */
   useEffect(() => {
     if (!mounted) return;
     try {
@@ -140,7 +141,8 @@ export default function CheckoutClient() {
     }, 0);
   }, [cart.items]);
 
-  const shippingFee = (cart.items || []).length > 0 ? getShipping(totalWeight) : 0;
+  const shippingFee =
+    (cart.items || []).length > 0 ? getShipping(totalWeight) : 0;
 
   const total = Math.max(0, subtotal - discount + shippingFee);
 
@@ -151,14 +153,14 @@ export default function CheckoutClient() {
 
     if (!coupon.trim()) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("coupons")
       .select("*")
       .eq("code", coupon.trim().toUpperCase())
       .eq("is_active", true)
       .single();
 
-    if (!data) {
+    if (error || !data) {
       setCouponMsg("Invalid or expired coupon");
       return;
     }
@@ -200,18 +202,21 @@ export default function CheckoutClient() {
       return;
     }
 
-    const { data: authRes, error: authErr } = await supabase.auth.getUser();
-    if (authErr || !authRes?.user?.id) {
-      setShowLoginModal(true);
-      return;
-    }
-
     try {
       setSaving(true);
       setSaveError(null);
+      setSuccessMsg(null);
+
+      // ✅ LOGIN CHECK
+      const { data: authRes, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !authRes?.user?.id) {
+        setShowLoginModal(true);
+        return;
+      }
 
       const userId = authRes.user.id;
 
+      /* ================= SAVE ADDRESS ================= */
       const { data: addr, error: addrErr } = await supabase
         .from("addresses")
         .insert({
@@ -229,8 +234,12 @@ export default function CheckoutClient() {
         .select("id")
         .single();
 
-      if (addrErr || !addr?.id) throw new Error(addrErr?.message || "Failed to save address");
+      if (addrErr || !addr?.id) {
+        console.error("ADDRESS ERROR:", addrErr);
+        throw new Error(addrErr?.message || "Failed to save address");
+      }
 
+      /* ================= SAVE ORDER ================= */
       const { data: order, error: orderErr } = await supabase
         .from("orders")
         .insert({
@@ -246,8 +255,12 @@ export default function CheckoutClient() {
         .select("id")
         .single();
 
-      if (orderErr || !order?.id) throw new Error(orderErr?.message || "Failed to create order");
+      if (orderErr || !order?.id) {
+        console.error("ORDER ERROR:", orderErr);
+        throw new Error(orderErr?.message || "Failed to create order");
+      }
 
+      /* ================= SAVE ORDER ITEMS ================= */
       const { error: itemsErr } = await supabase.from("order_items").insert(
         (cart.items || []).map((i: any) => ({
           order_id: order.id,
@@ -260,7 +273,10 @@ export default function CheckoutClient() {
         }))
       );
 
-      if (itemsErr) throw new Error(itemsErr.message || "Failed to save order items");
+      if (itemsErr) {
+        console.error("ITEMS ERROR:", itemsErr);
+        throw new Error(itemsErr.message || "Failed to save order items");
+      }
 
       /* ================= WHATSAPP MESSAGE ================= */
       const rows = (cart.items || []).map((it: any) => [
@@ -295,11 +311,14 @@ Notes: ${shipping.deliveryNotes || "None"}
       setSuccessMsg(`Order placed successfully. Order ID: ${order.id}`);
 
       if (typeof window !== "undefined") {
-        const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+        const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+          message
+        )}`;
         window.location.href = url;
       }
     } catch (e: any) {
-      setSaveError(e.message || "Failed to place order");
+      console.error("PLACE ORDER ERROR:", e);
+      setSaveError(e?.message || "Failed to place order");
     } finally {
       setSaving(false);
     }
@@ -320,7 +339,9 @@ Notes: ${shipping.deliveryNotes || "None"}
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-3xl bg-[#fffaf2] border border-gold p-6 shadow-xl">
             <h3 className="text-xl font-extrabold text-brown">Please login</h3>
-            <p className="mt-2 text-sm opacity-80">You must be logged in to place an order.</p>
+            <p className="mt-2 text-sm opacity-80">
+              You must be logged in to place an order.
+            </p>
 
             <div className="mt-6 flex gap-3">
               <button
@@ -392,7 +413,7 @@ Notes: ${shipping.deliveryNotes || "None"}
                 </div>
               </div>
 
-              {/* Optional Coupon UI (you already had logic) */}
+              {/* COUPON UI */}
               <div className="mt-6">
                 <label className="block text-sm font-semibold mb-2">Coupon Code</label>
                 <div className="flex gap-2">
@@ -479,7 +500,9 @@ Notes: ${shipping.deliveryNotes || "None"}
                   <textarea
                     className={`${inputBase} min-h-[110px]`}
                     value={shipping.deliveryNotes}
-                    onChange={(e) => setShipping({ ...shipping, deliveryNotes: e.target.value })}
+                    onChange={(e) =>
+                      setShipping({ ...shipping, deliveryNotes: e.target.value })
+                    }
                   />
                 </div>
               </div>
