@@ -19,30 +19,71 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/* 🔥 Safe timeout wrapper */
+function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Request timed out")), ms);
+
+    promise
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    let alive = true;
+
+    // ✅ FIX: use getSession (NOT getUser)
+    withTimeout(supabase.auth.getSession(), 12000)
+      .then(({ data }) => {
+        if (!alive) return;
+        setUser(data.session?.user ?? null);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setUser(null);
+      });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!alive) return;
       setUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      alive = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (emailRaw: string, password: string) => {
     const email = emailRaw.trim();
+
     if (!email) return { ok: false, error: "Email is required" };
     if (!password) return { ok: false, error: "Password is required" };
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { ok: false, error: error.message };
+    try {
+      const { error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        12000
+      );
 
-    return { ok: true };
+      if (error) return { ok: false, error: error.message };
+
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || "Login failed" };
+    }
   };
 
   const signUp = async ({ email: emailRaw, password, fullName }: SignUpInput) => {
@@ -54,15 +95,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: false, error: "Password must be at least 6 characters" };
     if (!name) return { ok: false, error: "Full name is required" };
 
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { ok: false, error: error.message };
+    try {
+      const { error } = await withTimeout(
+        supabase.auth.signUp({ email, password }),
+        12000
+      );
 
-    // SQL storage later (profiles / addresses / orders)
-    return { ok: true };
+      if (error) return { ok: false, error: error.message };
+
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || "Signup failed" };
+    }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await withTimeout(supabase.auth.signOut(), 12000);
+    } catch {
+      // ignore
+    }
   };
 
   return (
