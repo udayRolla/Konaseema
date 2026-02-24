@@ -184,6 +184,11 @@ export default function CustomOrderClient() {
             <p className="opacity-80 mt-1">
               Minimum total weight: <span className="font-bold">5kg</span>
             </p>
+
+            {/* ✅ IMAGE DISCLAIMER (added here) */}
+            <p className="text-sm text-[#6b5a4a] opacity-80 mt-2">
+              Images are for reference only. Actual product appearance may vary.
+            </p>
           </div>
 
           <div className="flex gap-3 items-center">
